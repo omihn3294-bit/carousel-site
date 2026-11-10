@@ -2,9 +2,6 @@
   publish = "."
   functions = "netlify/functions"
 
-[functions]
-  node_version = "20"
-
 [[redirects]]
   from = "/api/generate"
   to = "/.netlify/functions/generate"
