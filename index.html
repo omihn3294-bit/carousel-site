@@ -171,9 +171,69 @@ const THEMES = {
   slate:  { bg: '#2C3037', bg2: '#23272D', text: '#ECEDEF', accent: '#86BBA6' }
 };
 
+
+// ---------- الذكاء الاصطناعي يقترح الألوان، والكود يهذّبها لتبقى مريحة وواضحة ----------
+const HEX = /^#[0-9a-fA-F]{6}$/;
+function hexToHsl(h) {
+  const n = parseInt(h.slice(1), 16);
+  const r = ((n >> 16) & 255) / 255, g = ((n >> 8) & 255) / 255, b = (n & 255) / 255;
+  const mx = Math.max(r, g, b), mn = Math.min(r, g, b), d = mx - mn;
+  let H = 0, S = 0; const L = (mx + mn) / 2;
+  if (d) {
+    S = d / (1 - Math.abs(2 * L - 1));
+    if (mx === r) H = ((g - b) / d) % 6; else if (mx === g) H = (b - r) / d + 2; else H = (r - g) / d + 4;
+    H *= 60; if (H < 0) H += 360;
+  }
+  return [H, S, L];
+}
+function hsl(H, S, L) {
+  const c = (1 - Math.abs(2 * L - 1)) * S, x = c * (1 - Math.abs(((H / 60) % 2) - 1)), m = L - c / 2;
+  let r = 0, g = 0, b = 0;
+  if (H < 60) [r, g, b] = [c, x, 0]; else if (H < 120) [r, g, b] = [x, c, 0];
+  else if (H < 180) [r, g, b] = [0, c, x]; else if (H < 240) [r, g, b] = [0, x, c];
+  else if (H < 300) [r, g, b] = [x, 0, c]; else [r, g, b] = [c, 0, x];
+  const f = (v) => Math.round((v + m) * 255).toString(16).padStart(2, '0');
+  return '#' + f(r) + f(g) + f(b);
+}
+const clamp = (v, a, b) => Math.min(Math.max(v, a), b);
+function harmonize(p) {
+  if (!p || !HEX.test(p.bg) || !HEX.test(p.accent)) return null;
+  const [bh, bs0, bl0] = hexToHsl(p.bg);
+  const dark = bl0 < 0.5, bs = Math.min(bs0, 0.32);
+  const bl = dark ? clamp(bl0, 0.12, 0.25) : clamp(bl0, 0.88, 0.95);
+  const [ah, as0, al0] = hexToHsl(p.accent);
+  return {
+    bg: hsl(bh, bs, bl),
+    bg2: hsl(bh, bs, dark ? bl - 0.04 : bl - 0.05),
+    text: dark ? hsl(bh, 0.15, 0.94) : hsl(bh, 0.25, 0.14),
+    accent: hsl(ah, Math.min(as0, 0.5), dark ? clamp(al0, 0.6, 0.75) : clamp(al0, 0.25, 0.4))
+  };
+}
+
+// الزخارف
+function decorate(ctx, t, deco) {
+  ctx.save();
+  ctx.fillStyle = t.accent; ctx.strokeStyle = t.accent;
+  if (deco === 'band') {
+    ctx.fillRect(0, 0, 36, SIZE);
+  } else if (deco === 'corner') {
+    ctx.globalAlpha = 0.12;
+    ctx.beginPath(); ctx.arc(0, 0, 380, 0, Math.PI * 2); ctx.fill();
+    ctx.beginPath(); ctx.arc(SIZE, SIZE, 260, 0, Math.PI * 2); ctx.fill();
+  } else if (deco === 'lines') {
+    ctx.globalAlpha = 0.5; ctx.lineWidth = 2;
+    [96, SIZE - 120].forEach((yy) => { ctx.beginPath(); ctx.moveTo(160, yy); ctx.lineTo(SIZE - 160, yy); ctx.stroke(); });
+  } else {
+    ctx.globalAlpha = 0.45; ctx.lineWidth = 2;
+    ctx.strokeRect(48, 48, SIZE - 96, SIZE - 96);
+  }
+  ctx.restore();
+}
+
 // ---------- الرسم ----------
 function render(data) {
-  const t = THEMES[data.theme] || THEMES.ivory;
+  const t = harmonize(data.palette) || THEMES[data.theme] || THEMES.ivory;
+  const deco = ['frame', 'band', 'corner', 'lines'].includes(data.decor) ? data.decor : 'frame';
   const layout = data.layout === 'editorial' ? 'editorial' : 'classic';
   const imgPos = data.imagePosition === 'top' ? 'top' : 'bottom';
   const box = $('slides');
@@ -183,7 +243,7 @@ function render(data) {
     const canvas = document.createElement('canvas');
     canvas.width = SIZE;
     canvas.height = SIZE;
-    drawSlide(canvas.getContext('2d'), s, i, t, layout, imgPos);
+    drawSlide(canvas.getContext('2d'), s, i, t, layout, imgPos, deco);
 
     const wrapEl = document.createElement('div');
     wrapEl.className = 'slide';
@@ -197,7 +257,7 @@ function render(data) {
   $('results').style.display = 'block';
 }
 
-function drawSlide(ctx, slide, i, t, layout, imgPos) {
+function drawSlide(ctx, slide, i, t, layout, imgPos, deco) {
   // الخلفية: تدرج خفيف جداً
   const g = ctx.createLinearGradient(0, 0, 0, SIZE);
   g.addColorStop(0, t.bg);
@@ -205,13 +265,7 @@ function drawSlide(ctx, slide, i, t, layout, imgPos) {
   ctx.fillStyle = g;
   ctx.fillRect(0, 0, SIZE, SIZE);
 
-  // إطار رفيع
-  ctx.save();
-  ctx.strokeStyle = t.accent;
-  ctx.globalAlpha = 0.45;
-  ctx.lineWidth = 2;
-  ctx.strokeRect(48, 48, SIZE - 96, SIZE - 96);
-  ctx.restore();
+  decorate(ctx, t, deco);
 
   // الصورة (الشريحة الأولى والأخيرة): كاملة بدون قص وبحواف
   const hasImg = productImg && (i === 0 || i === 3);
