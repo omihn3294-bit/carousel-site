@@ -210,20 +210,50 @@ function harmonize(p) {
   };
 }
 
-// الزخارف
-function decorate(ctx, t, deco) {
+// ---------- التخطيطات: كل واحد له بنية هندسية مختلفة ----------
+// align: c = نص في الوسط، r = نص جانبي | v: c = وسط، b = أسفل | st/sb: هامش أعلى/أسفل
+const LAYOUTS = {
+  frame:     { align: 'c', v: 'c', st: 130, sb: 150 },
+  editorial: { align: 'r', v: 'c', st: 130, sb: 150 },
+  band:      { align: 'c', v: 'c', st: 130, sb: 150 },
+  circle:    { align: 'c', v: 'c', st: 130, sb: 150 },
+  card:      { align: 'c', v: 'c', st: 140, sb: 160 },
+  numeral:   { align: 'r', v: 'b', st: 130, sb: 150 },
+  header:    { align: 'c', v: 'c', st: 230, sb: 150 },
+  diagonal:  { align: 'r', v: 'c', st: 130, sb: 150 }
+};
+
+function decorate(ctx, t, name, i) {
   ctx.save();
-  ctx.fillStyle = t.accent; ctx.strokeStyle = t.accent;
-  if (deco === 'band') {
+  ctx.fillStyle = t.accent;
+  ctx.strokeStyle = t.accent;
+  if (name === 'band') {
     ctx.fillRect(0, 0, 36, SIZE);
-  } else if (deco === 'corner') {
+  } else if (name === 'circle') {
+    ctx.globalAlpha = 0.1;
+    ctx.beginPath(); ctx.arc(SIZE / 2, SIZE / 2, 430, 0, Math.PI * 2); ctx.fill();
+    ctx.globalAlpha = 0.35; ctx.lineWidth = 3;
+    ctx.beginPath(); ctx.arc(SIZE / 2, SIZE / 2, 430, 0, Math.PI * 2); ctx.stroke();
+  } else if (name === 'card') {
+    ctx.fillRect(0, 0, SIZE, SIZE);
+    const g = ctx.createLinearGradient(0, 0, 0, SIZE);
+    g.addColorStop(0, t.bg); g.addColorStop(1, t.bg2);
+    ctx.fillStyle = g;
+    roundRect(ctx, 56, 56, SIZE - 112, SIZE - 112, 36);
+    ctx.fill();
+  } else if (name === 'numeral') {
+    ctx.globalAlpha = 0.1;
+    ctx.font = `800 560px ${FONT}`;
+    ctx.direction = 'ltr'; ctx.textAlign = 'left';
+    ctx.fillText(String(i + 1), 60, 560);
+  } else if (name === 'header') {
+    ctx.fillRect(0, 0, SIZE, 150);
+  } else if (name === 'diagonal') {
     ctx.globalAlpha = 0.12;
-    ctx.beginPath(); ctx.arc(0, 0, 380, 0, Math.PI * 2); ctx.fill();
-    ctx.beginPath(); ctx.arc(SIZE, SIZE, 260, 0, Math.PI * 2); ctx.fill();
-  } else if (deco === 'lines') {
-    ctx.globalAlpha = 0.5; ctx.lineWidth = 2;
-    [96, SIZE - 120].forEach((yy) => { ctx.beginPath(); ctx.moveTo(160, yy); ctx.lineTo(SIZE - 160, yy); ctx.stroke(); });
-  } else {
+    ctx.beginPath();
+    ctx.moveTo(0, 720); ctx.lineTo(SIZE, 220); ctx.lineTo(SIZE, 400); ctx.lineTo(0, 900);
+    ctx.closePath(); ctx.fill();
+  } else if (name !== 'editorial') { // frame
     ctx.globalAlpha = 0.45; ctx.lineWidth = 2;
     ctx.strokeRect(48, 48, SIZE - 96, SIZE - 96);
   }
@@ -233,8 +263,7 @@ function decorate(ctx, t, deco) {
 // ---------- الرسم ----------
 function render(data) {
   const t = harmonize(data.palette) || THEMES[data.theme] || THEMES.ivory;
-  const deco = ['frame', 'band', 'corner', 'lines'].includes(data.decor) ? data.decor : 'frame';
-  const layout = data.layout === 'editorial' ? 'editorial' : 'classic';
+  const layout = LAYOUTS[data.layout] ? data.layout : 'frame';
   const imgPos = data.imagePosition === 'top' ? 'top' : 'bottom';
   const box = $('slides');
   box.innerHTML = '';
@@ -243,7 +272,7 @@ function render(data) {
     const canvas = document.createElement('canvas');
     canvas.width = SIZE;
     canvas.height = SIZE;
-    drawSlide(canvas.getContext('2d'), s, i, t, layout, imgPos, deco);
+    drawSlide(canvas.getContext('2d'), s, i, t, layout, imgPos);
 
     const wrapEl = document.createElement('div');
     wrapEl.className = 'slide';
@@ -257,33 +286,33 @@ function render(data) {
   $('results').style.display = 'block';
 }
 
-function drawSlide(ctx, slide, i, t, layout, imgPos, deco) {
-  // الخلفية: تدرج خفيف جداً
+function drawSlide(ctx, slide, i, t, layout, imgPos) {
+  const L = LAYOUTS[layout];
   const g = ctx.createLinearGradient(0, 0, 0, SIZE);
   g.addColorStop(0, t.bg);
   g.addColorStop(1, t.bg2);
   ctx.fillStyle = g;
   ctx.fillRect(0, 0, SIZE, SIZE);
 
-  decorate(ctx, t, deco);
+  decorate(ctx, t, layout, i);
 
   // الصورة (الشريحة الأولى والأخيرة): كاملة بدون قص وبحواف
   const hasImg = productImg && (i === 0 || i === 3);
-  let top = 130, bottom = SIZE - 150;
+  let top = L.st, bottom = SIZE - L.sb;
   if (hasImg) {
-    const maxW = 780, maxH = 390, pad = 24, margin = 110;
+    const maxW = 780, maxH = 390, pad = 24;
     const r = Math.min(maxW / productImg.width, maxH / productImg.height);
     const iw = productImg.width * r, ih = productImg.height * r;
     const cw = iw + pad * 2, ch = ih + pad * 2;
     const cx0 = (SIZE - cw) / 2;
-    const cy0 = imgPos === 'top' ? margin : SIZE - margin - ch - 30;
+    const cy0 = imgPos === 'top' ? L.st - 20 : SIZE - L.sb + 10 - ch;
     drawImageCard(ctx, productImg, cx0, cy0, cw, ch, pad, t);
-    if (imgPos === 'top') { top = cy0 + ch + 30; bottom = SIZE - 150; }
-    else { top = 120; bottom = cy0 - 30; }
+    if (imgPos === 'top') { top = cy0 + ch + 30; }
+    else { top = L.st - 10; bottom = cy0 - 30; }
   }
 
   // النص
-  const aligned = layout === 'editorial' || i === 2;
+  const aligned = L.align === 'r' || i === 2;
   const tS = hasImg ? 70 : 90, bS = hasImg ? 42 : 50;
   const X = SIZE - 160;
   const maxW = aligned ? SIZE - 360 : SIZE - 260;
@@ -301,7 +330,8 @@ function drawSlide(ctx, slide, i, t, layout, imgPos, deco) {
   const tLH = tS * 1.3, bLH = bS * 1.55, itemGap = i === 2 ? 24 : 0;
   const bodyH = items.reduce((s, a) => s + a.length * bLH, 0) + itemGap * (items.length - 1);
   const total = tl.length * tLH + 50 + bodyH;
-  let y = top + Math.max(0, (bottom - top - total) / 2) + tS;
+  const free = Math.max(0, bottom - top - total);
+  let y = top + (L.v === 'b' ? free : free / 2) + tS;
   const startY = y;
 
   ctx.textAlign = aligned ? 'right' : 'center';
@@ -310,7 +340,7 @@ function drawSlide(ctx, slide, i, t, layout, imgPos, deco) {
   ctx.fillStyle = t.text;
   ctx.font = `800 ${tS}px ${FONT}`;
   tl.forEach((l) => { ctx.fillText(l, tx, y); y += tLH; });
-  let lastBase = y - tLH;
+  const lastBase = y - tLH;
 
   if (!aligned) {
     ctx.fillStyle = t.accent;
@@ -333,8 +363,8 @@ function drawSlide(ctx, slide, i, t, layout, imgPos, deco) {
     y += itemGap;
   });
 
-  // خط عمودي بلون التمييز في التصميم الجانبي
-  if (aligned) {
+  // خط عمودي بلون التمييز
+  if (aligned && (layout === 'editorial' || i === 2)) {
     ctx.fillStyle = t.accent;
     ctx.fillRect(SIZE - 118, startY - tS * 0.85, 6, y - itemGap - bS * 0.4 - startY + tS * 0.85);
   }
