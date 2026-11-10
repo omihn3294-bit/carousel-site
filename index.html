@@ -1,399 +1,451 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="ar" dir="rtl">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>مولّد منشورات التقليب</title>
-<meta name="description" content="اكتب اسم منتجك، واحصل على 4 شرائح جاهزة للنشر بتصميم مدروس ونصوص عربية واضحة.">
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700;800&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;700;800&display=swap" rel="stylesheet">
 <style>
   :root {
-    --bg: #f7f4ee;
-    --bg2: #efe9df;
-    --card: #fffdf9;
-    --ink: #201e1a;
-    --muted: #6d675d;
-    --line: #e3dccf;
-    --brand: #23584a;
-    --brand-soft: #e7efe9;
-    --gold: #b08a4f;
-    --danger: #a8342a;
-    --shadow: 0 18px 50px -28px rgba(48, 38, 24, .45);
+    --bg: #f6f4ef;
+    --card: #ffffff;
+    --ink: #1c1b19;
+    --muted: #6b665d;
+    --line: #dcd6c8;
+    --brand: #0f5c4d;
+    --brand-ink: #ffffff;
   }
   * { box-sizing: border-box; }
-  html { scroll-behavior: smooth; }
   body {
     margin: 0;
-    font-family: 'Tajawal', 'Segoe UI', Tahoma, sans-serif;
-    background:
-      radial-gradient(900px 500px at 85% -10%, #fffdf6 0%, rgba(255,253,246,0) 60%),
-      linear-gradient(180deg, var(--bg) 0%, var(--bg2) 100%);
+    font-family: 'Tajawal', Arial, sans-serif;
+    background: var(--bg);
     color: var(--ink);
     line-height: 1.7;
-    min-height: 100vh;
-    -webkit-font-smoothing: antialiased;
   }
-  main { max-width: 880px; margin: 0 auto; padding: 40px 18px 80px; }
-  header { margin-bottom: 26px; }
-  .kicker {
-    display: inline-flex; align-items: center; gap: 8px;
-    font-size: 13px; font-weight: 700; letter-spacing: .2px;
-    color: var(--brand); background: var(--brand-soft);
-    border: 1px solid #d7e4dc; border-radius: 100px; padding: 5px 12px;
-  }
-  .kicker i { width: 6px; height: 6px; border-radius: 50%; background: var(--brand); display: block; }
-  h1 { font-size: clamp(26px, 4.4vw, 34px); font-weight: 800; margin: 12px 0 6px; letter-spacing: -.2px; }
-  .sub { color: var(--muted); margin: 0; font-size: 16px; max-width: 60ch; }
-
+  main { max-width: 760px; margin: 0 auto; padding: 24px 16px 64px; }
+  h1 { font-size: 28px; margin: 8px 0 4px; font-weight: 800; }
+  .sub { color: var(--muted); margin: 0 0 24px; }
   .panel {
     background: var(--card);
     border: 1px solid var(--line);
-    border-radius: 20px;
-    padding: 24px;
-    box-shadow: var(--shadow);
-  }
-  .row { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
-  @media (max-width: 620px) { .row { grid-template-columns: 1fr; } }
-  label { display: block; font-weight: 700; margin: 16px 0 6px; font-size: 15px; }
-  label:first-child { margin-top: 0; }
-  label .opt { color: var(--muted); font-weight: 400; font-size: 13px; }
-  input[type=text], textarea {
-    width: 100%; font: inherit; font-size: 16px;
-    padding: 12px 14px;
-    border: 1px solid var(--line);
     border-radius: 12px;
+    padding: 20px;
+  }
+  label { display: block; font-weight: 700; margin: 14px 0 6px; }
+  label:first-child { margin-top: 0; }
+  input[type=text], textarea {
+    width: 100%;
+    font: inherit;
+    padding: 10px 12px;
+    border: 1px solid var(--line);
+    border-radius: 8px;
     background: #fff;
     color: var(--ink);
-    transition: border-color .15s, box-shadow .15s;
   }
-  textarea { min-height: 92px; resize: vertical; }
-  input[type=text]::placeholder, textarea::placeholder { color: #a49c8f; }
-  input[type=text]:focus, textarea:focus, button:focus-visible, .drop:focus-visible {
-    outline: none;
-    border-color: var(--brand);
-    box-shadow: 0 0 0 4px rgba(35, 88, 74, .12);
+  textarea { min-height: 90px; resize: vertical; }
+  input:focus-visible, textarea:focus-visible, button:focus-visible {
+    outline: 3px solid #f0b429;
+    outline-offset: 2px;
   }
-  .hint { color: var(--muted); font-size: 13.5px; margin: 6px 0 0; }
-
-  .drop {
-    display: flex; align-items: center; gap: 14px;
-    border: 1.5px dashed #d8cfbe;
-    border-radius: 14px;
-    padding: 14px;
-    background: #fdfbf6;
-    cursor: pointer;
-    transition: border-color .15s, background .15s;
-  }
-  .drop:hover, .drop.over { border-color: var(--brand); background: #f8faf7; }
-  .drop input { display: none; }
-  .thumb {
-    width: 56px; height: 56px; border-radius: 10px; flex: none;
-    background: #f1ece2 var(--thumb) center/cover no-repeat;
-    border: 1px solid var(--line);
-    display: grid; place-items: center; color: var(--muted); font-size: 20px;
-  }
-  .drop b { display: block; font-size: 15px; }
-  .drop small { color: var(--muted); font-size: 13px; }
-
-  .actions { display: flex; gap: 10px; margin-top: 20px; flex-wrap: wrap; }
+  .hint { color: var(--muted); font-size: 14px; margin: 4px 0 0; }
   button {
-    font: inherit; font-weight: 700; cursor: pointer;
-    border-radius: 12px; border: 1px solid transparent;
-    padding: 12px 20px; font-size: 16px;
-    transition: transform .12s, background .15s, opacity .15s;
+    font: inherit;
+    font-weight: 700;
+    cursor: pointer;
+    border-radius: 8px;
+    border: 1px solid var(--brand);
+    padding: 11px 18px;
   }
-  button:active { transform: translateY(1px); }
-  .primary { background: var(--brand); color: #fff; flex: 1 1 220px; }
-  .primary:hover { background: #1c4a3d; }
-  .primary:disabled { opacity: .65; cursor: progress; }
-  .ghost { background: #fff; color: var(--brand); border-color: #cfdcd5; }
-  .ghost:hover { background: var(--brand-soft); }
-  .ghost:disabled { opacity: .5; cursor: not-allowed; }
-
-  #msg { margin: 16px 0 0; min-height: 24px; font-size: 15px; color: var(--muted); }
-  #msg.err { color: var(--danger); }
-  .spinner {
-    display: inline-block; width: 15px; height: 15px; margin-inline-end: 8px;
-    border: 2px solid #cfd8d3; border-top-color: var(--brand); border-radius: 50%;
-    animation: spin .8s linear infinite; vertical-align: -2px;
-  }
-  @keyframes spin { to { transform: rotate(360deg); } }
-
-  #results { margin-top: 36px; display: none; }
-  #results.on { display: block; animation: fade .35s ease; }
-  @keyframes fade { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
-  .bar { display: flex; justify-content: space-between; align-items: center; gap: 10px; flex-wrap: wrap; margin-bottom: 16px; }
-  .bar h2 { margin: 0; font-size: 21px; font-weight: 800; }
-  .bar .meta { color: var(--muted); font-size: 14px; }
-  .slides { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 18px; }
-  .slide {
-    background: var(--card); border: 1px solid var(--line); border-radius: 16px;
-    padding: 10px; box-shadow: 0 10px 30px -24px rgba(48,38,24,.5);
-  }
-  .slide canvas { width: 100%; height: auto; display: block; border-radius: 10px; }
-  .slide .tools { display: flex; gap: 8px; margin-top: 10px; }
-  .slide .tools button { flex: 1; padding: 9px 10px; font-size: 14px; }
-  footer { margin-top: 44px; color: var(--muted); font-size: 13.5px; text-align: center; }
-  .sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); }
+  .primary { background: var(--brand); color: var(--brand-ink); width: 100%; margin-top: 18px; font-size: 18px; }
+  .primary:disabled { opacity: .6; cursor: wait; }
+  .secondary { background: #fff; color: var(--brand); }
+  #msg { margin: 14px 0 0; min-height: 24px; }
+  #msg.err { color: #b3261e; }
+  #results { margin-top: 28px; display: none; }
+  .bar { display: flex; justify-content: space-between; align-items: center; gap: 8px; flex-wrap: wrap; margin-bottom: 14px; }
+  .bar h2 { margin: 0; font-size: 20px; }
+  .slides { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 16px; }
+  .slide { background: var(--card); border: 1px solid var(--line); border-radius: 12px; padding: 10px; }
+  .slide canvas { width: 100%; height: auto; display: block; border-radius: 8px; }
+  .slide button { width: 100%; margin-top: 10px; }
 </style>
 </head>
 <body>
 <main>
-  <header>
-    <span class="kicker"><i></i> تصميم عربي جاهز للنشر</span>
-    <h1>مولّد منشورات التقليب</h1>
-    <p class="sub">اكتب اسم منتجك، ويكتب الذكاء الاصطناعي النص ويختار الألوان، ثم تُبنى أربع شرائح بتصميم متناسق وتنويع بصري بين كل شريحة.</p>
-  </header>
+  <h1>مولّد منشورات التقليب</h1>
+  <p class="sub">اكتب منتجك، والذكاء الاصطناعي يكتب النص ويختار التصميم، وتحمّل 4 شرائح جاهزة للنشر.</p>
 
   <section class="panel">
-    <label for="product">اسم المنتج <span class="opt">(مطلوب)</span></label>
-    <input type="text" id="product" maxlength="200" placeholder="مثال: عطر عود فاخر" autocomplete="off">
+    <label for="product">اسم المنتج</label>
+    <input type="text" id="product" maxlength="200" placeholder="مثال: عطر عود فاخر">
 
-    <label for="details">وصف قصير <span class="opt">(اختياري)</span></label>
-    <textarea id="details" maxlength="800" placeholder="مثال: يدوم ١٢ ساعة، رائحة دافئة، مناسب للهدايا والعيد"></textarea>
+    <label for="details">وصف قصير (اختياري)</label>
+    <textarea id="details" maxlength="800" placeholder="مثال: يدوم 12 ساعة، رائحة دافئة، مناسب للهدايا والعيد"></textarea>
 
-    <div class="row">
-      <div>
-        <label for="offer">السعر أو العرض <span class="opt">(اختياري)</span></label>
-        <input type="text" id="offer" maxlength="150" placeholder="٩ ريال عماني، توصيل مجاني">
-      </div>
-      <div>
-        <label for="tone">الأسلوب <span class="opt">(اختياري)</span></label>
-        <input type="text" id="tone" maxlength="100" placeholder="فخم، حماسي، بسيط…">
-      </div>
-    </div>
+    <label for="offer">السعر أو العرض (اختياري)</label>
+    <input type="text" id="offer" maxlength="150" placeholder="مثال: 9 ريال عماني، توصيل مجاني لكل ولايات السلطنة">
 
-    <label for="photo">صورة المنتج <span class="opt">(اختياري)</span></label>
-    <label class="drop" id="drop" tabindex="0">
-      <input type="file" id="photo" accept="image/*">
-      <span class="thumb" id="thumb" aria-hidden="true">＋</span>
-      <span>
-        <b id="dropTitle">أضف صورة المنتج</b>
-        <small id="dropSub">اسحب الصورة هنا أو اضغط للاختيار — تبقى في جهازك ولا تُرفع.</small>
-      </span>
-    </label>
+    <label for="tone">الأسلوب (اختياري)</label>
+    <input type="text" id="tone" maxlength="100" placeholder="مثال: فخم، أو حماسي، أو بسيط">
 
-    <div class="actions">
-      <button class="primary" id="go">أنشئ المنشور</button>
-    </div>
+    <label for="photo">صورة المنتج (اختياري)</label>
+    <input type="file" id="photo" accept="image/*">
+    <p class="hint">الصورة تبقى في جهازك ولا تُرفع لأي مكان.</p>
+
+    <button class="primary" id="go">أنشئ المنشور</button>
     <p id="msg" role="status" aria-live="polite"></p>
   </section>
 
-  <section id="results" aria-live="polite">
+  <section id="results">
     <div class="bar">
-      <div>
-        <h2>الشرائح الأربع</h2>
-        <div class="meta" id="meta"></div>
-      </div>
-      <div class="actions" style="margin:0">
-        <button class="ghost" id="vary" title="يغيّر الشكل دون استهلاك أي طلب جديد">تنويع التصميم</button>
-        <button class="ghost" id="all">تحميل الكل</button>
-      </div>
+      <h2>الشرائح</h2>
+      <button class="secondary" id="all">حمّل الكل</button>
     </div>
     <div class="slides" id="slides"></div>
   </section>
-
-  <footer>التصميم يُرسم داخل متصفحك بجودة ١٠٨٠×١٠٨٠ بكسل — ولا تُرسل الصورة إلى أي خادم.</footer>
 </main>
 
-<script src="engine.js"></script>
 <script>
-(function () {
-  'use strict';
-  const E = window.CarouselEngine;
-  const $ = (id) => document.getElementById(id);
-  const SIZE = E.SIZE;
-  const MAX_UPLOAD = 1600;
+const FONT = "'Tajawal', Arial, sans-serif";
+const SIZE = 1080;
+let productImg = null;
+let lastData = null;
 
-  const THEME_LABEL = {
-    arch: 'قوس', split: 'انقسام', editorial: 'مجلاتي', band: 'شريط',
-    circle: 'دائرة', grid: 'شبكة', wave: 'موجة', ticket: 'تذكرة',
-    offset: 'إطار مائل', diagonal: 'مائل', halftone: 'نقاط متدرجة',
-    polaroid: 'بولارويد', corner: 'زوايا', fullbleed: 'صورة كاملة'
+const $ = (id) => document.getElementById(id);
+
+// ---------- صورة المنتج ----------
+$('photo').addEventListener('change', (e) => {
+  const file = e.target.files[0];
+  if (!file) { productImg = null; if (lastData) render(lastData); return; }
+  const img = new Image();
+  img.onload = () => { productImg = img; if (lastData) render(lastData); };
+  img.src = URL.createObjectURL(file);
+});
+
+// ---------- طلب النص والتصميم من الذكاء الاصطناعي ----------
+$('go').addEventListener('click', async () => {
+  const product = $('product').value.trim();
+  if (!product) { setMsg('اكتب اسم المنتج أولاً.', true); return; }
+
+  $('go').disabled = true;
+  setMsg('جاري كتابة المنشور وتصميمه...');
+
+  try {
+    const r = await fetch('/api/generate', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        product,
+        details: $('details').value.trim(),
+        offer: $('offer').value.trim(),
+        tone: $('tone').value.trim()
+      })
+    });
+    const data = await r.json();
+    if (!r.ok) throw new Error(data.error || 'حدث خطأ');
+    lastData = data;
+    await document.fonts.load("700 60px 'Tajawal'");
+    render(data);
+    setMsg('تم. حمّل الشرائح من الأسفل.');
+  } catch (err) {
+    setMsg(err.message || 'تعذّر إنشاء المنشور، جرّب مرة ثانية.', true);
+  } finally {
+    $('go').disabled = false;
+  }
+});
+
+function setMsg(text, isErr) {
+  const m = $('msg');
+  m.textContent = text;
+  m.className = isErr ? 'err' : '';
+}
+
+// ---------- القوالب: ألوان هادئة ومريحة للعين، والذكاء الاصطناعي يختار منها ----------
+const THEMES = {
+  ivory:  { bg: '#F4EFE6', bg2: '#EAE3D5', text: '#2A2926', accent: '#7A5C3E' },
+  sage:   { bg: '#E3E9E0', bg2: '#D5DFD2', text: '#22302A', accent: '#3E6B52' },
+  rose:   { bg: '#F5E8E6', bg2: '#EBD7D4', text: '#3A2A2E', accent: '#9A4A5C' },
+  navy:   { bg: '#1C2B40', bg2: '#16233A', text: '#EDF0F4', accent: '#C9A96B' },
+  forest: { bg: '#1F3B33', bg2: '#183029', text: '#F1EEE6', accent: '#D8BA7C' },
+  slate:  { bg: '#2C3037', bg2: '#23272D', text: '#ECEDEF', accent: '#86BBA6' }
+};
+
+
+// ---------- الذكاء الاصطناعي يقترح الألوان، والكود يهذّبها لتبقى مريحة وواضحة ----------
+const HEX = /^#[0-9a-fA-F]{6}$/;
+function hexToHsl(h) {
+  const n = parseInt(h.slice(1), 16);
+  const r = ((n >> 16) & 255) / 255, g = ((n >> 8) & 255) / 255, b = (n & 255) / 255;
+  const mx = Math.max(r, g, b), mn = Math.min(r, g, b), d = mx - mn;
+  let H = 0, S = 0; const L = (mx + mn) / 2;
+  if (d) {
+    S = d / (1 - Math.abs(2 * L - 1));
+    if (mx === r) H = ((g - b) / d) % 6; else if (mx === g) H = (b - r) / d + 2; else H = (r - g) / d + 4;
+    H *= 60; if (H < 0) H += 360;
+  }
+  return [H, S, L];
+}
+function hsl(H, S, L) {
+  const c = (1 - Math.abs(2 * L - 1)) * S, x = c * (1 - Math.abs(((H / 60) % 2) - 1)), m = L - c / 2;
+  let r = 0, g = 0, b = 0;
+  if (H < 60) [r, g, b] = [c, x, 0]; else if (H < 120) [r, g, b] = [x, c, 0];
+  else if (H < 180) [r, g, b] = [0, c, x]; else if (H < 240) [r, g, b] = [0, x, c];
+  else if (H < 300) [r, g, b] = [x, 0, c]; else [r, g, b] = [c, 0, x];
+  const f = (v) => Math.round((v + m) * 255).toString(16).padStart(2, '0');
+  return '#' + f(r) + f(g) + f(b);
+}
+const clamp = (v, a, b) => Math.min(Math.max(v, a), b);
+function harmonize(p) {
+  if (!p || !HEX.test(p.bg) || !HEX.test(p.accent)) return null;
+  const [bh, bs0, bl0] = hexToHsl(p.bg);
+  const dark = bl0 < 0.5, bs = Math.min(bs0, 0.32);
+  const bl = dark ? clamp(bl0, 0.12, 0.25) : clamp(bl0, 0.88, 0.95);
+  const [ah, as0, al0] = hexToHsl(p.accent);
+  return {
+    bg: hsl(bh, bs, bl),
+    bg2: hsl(bh, bs, dark ? bl - 0.04 : bl - 0.05),
+    text: dark ? hsl(bh, 0.15, 0.94) : hsl(bh, 0.25, 0.14),
+    accent: hsl(ah, Math.min(as0, 0.5), dark ? clamp(al0, 0.6, 0.75) : clamp(al0, 0.25, 0.4))
   };
+}
 
-  const state = { deck: null, motif: null, palette: null, seed: 0, img: null, key: '', cache: new Map(), busy: false };
+// ---------- التخطيطات: كل واحد له بنية هندسية مختلفة ----------
+// align: c = نص في الوسط، r = نص جانبي | v: c = وسط، b = أسفل | st/sb: هامش أعلى/أسفل
+const LAYOUTS = {
+  frame:     { align: 'c', v: 'c', st: 130, sb: 150 },
+  editorial: { align: 'r', v: 'c', st: 130, sb: 150 },
+  band:      { align: 'c', v: 'c', st: 130, sb: 150 },
+  circle:    { align: 'c', v: 'c', st: 130, sb: 150 },
+  card:      { align: 'c', v: 'c', st: 140, sb: 160 },
+  numeral:   { align: 'r', v: 'b', st: 130, sb: 150 },
+  header:    { align: 'c', v: 'c', st: 230, sb: 150 },
+  diagonal:  { align: 'r', v: 'c', st: 130, sb: 150 }
+};
 
-  /* ---------- الصورة ---------- */
-  function setPhoto(file) {
-    if (!file || !/^image\//.test(file.type)) return;
-    const url = URL.createObjectURL(file);
-    const img = new Image();
-    img.onload = () => {
-      let src = img;
-      const big = Math.max(img.width, img.height);
-      if (big > MAX_UPLOAD) {
-        const c = document.createElement('canvas');
-        const s = MAX_UPLOAD / big;
-        c.width = Math.round(img.width * s);
-        c.height = Math.round(img.height * s);
-        c.getContext('2d').drawImage(img, 0, 0, c.width, c.height);
-        src = c;
-      }
-      state.img = src;
-      $('thumb').style.setProperty('--thumb', 'url(' + url + ')');
-      $('thumb').textContent = '';
-      $('dropTitle').textContent = file.name.length > 34 ? file.name.slice(0, 31) + '…' : file.name;
-      $('dropSub').textContent = 'اضغط لتغيير الصورة';
-      if (state.deck) drawDeck();
-    };
-    img.onerror = () => setMsg('تعذّر قراءة الصورة، جرّب صورة أخرى.', true);
-    img.src = url;
+function decorate(ctx, t, name, i) {
+  ctx.save();
+  ctx.fillStyle = t.accent;
+  ctx.strokeStyle = t.accent;
+  if (name === 'band') {
+    ctx.fillRect(0, 0, 36, SIZE);
+  } else if (name === 'circle') {
+    ctx.globalAlpha = 0.1;
+    ctx.beginPath(); ctx.arc(SIZE / 2, SIZE / 2, 430, 0, Math.PI * 2); ctx.fill();
+    ctx.globalAlpha = 0.35; ctx.lineWidth = 3;
+    ctx.beginPath(); ctx.arc(SIZE / 2, SIZE / 2, 430, 0, Math.PI * 2); ctx.stroke();
+  } else if (name === 'card') {
+    ctx.fillRect(0, 0, SIZE, SIZE);
+    const g = ctx.createLinearGradient(0, 0, 0, SIZE);
+    g.addColorStop(0, t.bg); g.addColorStop(1, t.bg2);
+    ctx.fillStyle = g;
+    roundRect(ctx, 56, 56, SIZE - 112, SIZE - 112, 36);
+    ctx.fill();
+  } else if (name === 'numeral') {
+    ctx.globalAlpha = 0.1;
+    ctx.font = `800 560px ${FONT}`;
+    ctx.direction = 'ltr'; ctx.textAlign = 'left';
+    ctx.fillText(String(i + 1), 60, 560);
+  } else if (name === 'header') {
+    ctx.fillRect(0, 0, SIZE, 150);
+  } else if (name === 'diagonal') {
+    ctx.globalAlpha = 0.12;
+    ctx.beginPath();
+    ctx.moveTo(0, 720); ctx.lineTo(SIZE, 220); ctx.lineTo(SIZE, 400); ctx.lineTo(0, 900);
+    ctx.closePath(); ctx.fill();
+  } else if (name !== 'editorial') { // frame
+    ctx.globalAlpha = 0.45; ctx.lineWidth = 2;
+    ctx.strokeRect(48, 48, SIZE - 96, SIZE - 96);
+  }
+  ctx.restore();
+}
+
+// ---------- الرسم ----------
+function render(data) {
+  const t = harmonize(data.palette) || THEMES[data.theme] || THEMES.ivory;
+  const layout = LAYOUTS[data.layout] ? data.layout : 'frame';
+  const imgPos = data.imagePosition === 'top' ? 'top' : 'bottom';
+  const box = $('slides');
+  box.innerHTML = '';
+
+  data.slides.slice(0, 4).forEach((s, i) => {
+    const canvas = document.createElement('canvas');
+    canvas.width = SIZE;
+    canvas.height = SIZE;
+    drawSlide(canvas.getContext('2d'), s, i, t, layout, imgPos);
+
+    const wrapEl = document.createElement('div');
+    wrapEl.className = 'slide';
+    const btn = document.createElement('button');
+    btn.className = 'secondary';
+    btn.textContent = 'حمّل الشريحة ' + (i + 1);
+    btn.addEventListener('click', () => download(canvas, i));
+    wrapEl.append(canvas, btn);
+    box.appendChild(wrapEl);
+  });
+  $('results').style.display = 'block';
+}
+
+function drawSlide(ctx, slide, i, t, layout, imgPos) {
+  const L = LAYOUTS[layout];
+  const g = ctx.createLinearGradient(0, 0, 0, SIZE);
+  g.addColorStop(0, t.bg);
+  g.addColorStop(1, t.bg2);
+  ctx.fillStyle = g;
+  ctx.fillRect(0, 0, SIZE, SIZE);
+
+  decorate(ctx, t, layout, i);
+
+  // الصورة (الشريحة الأولى والأخيرة): كاملة بدون قص وبحواف
+  const hasImg = productImg && (i === 0 || i === 3);
+  let top = L.st, bottom = SIZE - L.sb;
+  if (hasImg) {
+    const maxW = 780, maxH = 390, pad = 24;
+    const r = Math.min(maxW / productImg.width, maxH / productImg.height);
+    const iw = productImg.width * r, ih = productImg.height * r;
+    const cw = iw + pad * 2, ch = ih + pad * 2;
+    const cx0 = (SIZE - cw) / 2;
+    const cy0 = imgPos === 'top' ? L.st - 20 : SIZE - L.sb + 10 - ch;
+    drawImageCard(ctx, productImg, cx0, cy0, cw, ch, pad, t);
+    if (imgPos === 'top') { top = cy0 + ch + 30; }
+    else { top = L.st - 10; bottom = cy0 - 30; }
   }
 
-  const drop = $('drop');
-  drop.addEventListener('click', () => $('photo').click());
-  drop.addEventListener('keydown', (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); $('photo').click(); } });
-  $('photo').addEventListener('change', (e) => setPhoto(e.target.files[0]));
-  ['dragenter', 'dragover'].forEach((ev) => drop.addEventListener(ev, (e) => { e.preventDefault(); drop.classList.add('over'); }));
-  ['dragleave', 'drop'].forEach((ev) => drop.addEventListener(ev, (e) => { e.preventDefault(); drop.classList.remove('over'); }));
-  drop.addEventListener('drop', (e) => { if (e.dataTransfer.files[0]) setPhoto(e.dataTransfer.files[0]); });
+  // النص
+  const aligned = L.align === 'r' || i === 2;
+  const tS = hasImg ? 70 : 90, bS = hasImg ? 42 : 50;
+  const X = SIZE - 160;
+  const maxW = aligned ? SIZE - 360 : SIZE - 260;
+  ctx.direction = 'rtl';
+  ctx.textBaseline = 'alphabetic';
 
-  /* ---------- helpers ---------- */
-  function setMsg(text, isErr) {
-    const m = $('msg');
-    m.innerHTML = '';
-    if (!text) { m.className = ''; return; }
-    m.textContent = text;
-    m.className = isErr ? 'err' : '';
+  ctx.font = `800 ${tS}px ${FONT}`;
+  const tl = wrap(ctx, String(slide.title || ''), maxW);
+  ctx.font = `400 ${bS}px ${FONT}`;
+  const raw = String(slide.body || '');
+  const items = i === 2
+    ? raw.split('\n').filter(Boolean).map((l) => wrap(ctx, l.replace(/^[-•✓\s]+/, ''), maxW - 50))
+    : [wrap(ctx, raw, maxW)];
+
+  const tLH = tS * 1.3, bLH = bS * 1.55, itemGap = i === 2 ? 24 : 0;
+  const bodyH = items.reduce((s, a) => s + a.length * bLH, 0) + itemGap * (items.length - 1);
+  const total = tl.length * tLH + 50 + bodyH;
+  const free = Math.max(0, bottom - top - total);
+  let y = top + (L.v === 'b' ? free : free / 2) + tS;
+  const startY = y;
+
+  ctx.textAlign = aligned ? 'right' : 'center';
+  const tx = aligned ? X : SIZE / 2;
+
+  ctx.fillStyle = t.text;
+  ctx.font = `800 ${tS}px ${FONT}`;
+  tl.forEach((l) => { ctx.fillText(l, tx, y); y += tLH; });
+  const lastBase = y - tLH;
+
+  if (!aligned) {
+    ctx.fillStyle = t.accent;
+    ctx.fillRect(SIZE / 2 - 45, lastBase + 28, 90, 6);
   }
-  function setBusy(on, label) {
-    state.busy = on;
-    $('go').disabled = on;
-    if (on) {
-      $('msg').className = '';
-      $('msg').innerHTML = '<span class="spinner"></span>' + (label || 'نكتب النص ونختار الألوان…');
-    } else if ($('msg').querySelector('.spinner')) {
-      $('msg').textContent = '';
+
+  y = lastBase + 50 + bS;
+  ctx.font = `400 ${bS}px ${FONT}`;
+  items.forEach((lines) => {
+    if (i === 2) {
+      ctx.fillStyle = t.accent;
+      ctx.beginPath();
+      ctx.arc(X - 12, y - bS * 0.32, 9, 0, Math.PI * 2);
+      ctx.fill();
     }
-  }
-
-  /* ---------- التوليد ---------- */
-  async function generate() {
-    if (state.busy) return;
-    const product = $('product').value.trim();
-    if (!product) { setMsg('اكتب اسم المنتج أولاً.', true); $('product').focus(); return; }
-
-    const payload = {
-      product,
-      details: $('details').value.trim(),
-      offer: $('offer').value.trim(),
-      tone: $('tone').value.trim(),
-      avoid: state.motif || ''
-    };
-    const key = JSON.stringify([payload.product, payload.details, payload.offer, payload.tone]);
-
-    setBusy(true);
-    try {
-      let data = state.cache.get(key);
-      if (!data) {
-        const ctrl = new AbortController();
-        const timer = setTimeout(() => ctrl.abort(), 45000);
-        const res = await fetch('/api/generate', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(payload),
-          signal: ctrl.signal
-        });
-        clearTimeout(timer);
-        let body = null;
-        try { body = await res.json(); } catch (e) { body = null; }
-        if (!res.ok) throw new Error((body && body.error) || 'تعذّر الاتصال بالخدمة (' + res.status + ')');
-        data = body;
-        if (!data || !Array.isArray(data.slides) || data.slides.length < 4) throw new Error('وصل رد ناقص، جرّب مرة ثانية.');
-        state.cache.set(key, data);
-      }
-      state.deck = data;
-      state.palette = E.palette(data.palette);
-      state.motif = data.motif && E.MOTIFS.indexOf(data.motif) > -1 ? data.motif : E.pickMotif(payload.avoid, Date.now());
-      state.seed = Number(data.seed) || Math.floor(Math.random() * 1e6);
-      state.key = key;
-
-      await document.fonts.ready;
-      drawDeck();
-      setMsg('جاهز — حمّل الشرائح أو اضغط «تنويع التصميم» لشكل آخر بنفس النص.');
-    } catch (err) {
-      const msg = err && err.name === 'AbortError'
-        ? 'الخدمة تأخّرت أكثر من ٤٥ ثانية، جرّب مرة ثانية.'
-        : (err.message || 'تعذّر إنشاء المنشور، جرّب مرة ثانية.');
-      setMsg(msg, true);
-    } finally {
-      setBusy(false);
-      $('results').classList.add('on');
-    }
-  }
-
-  /* ---------- الرسم ---------- */
-  function drawDeck() {
-    if (!state.deck) return;
-    const box = $('slides');
-    box.innerHTML = '';
-    const slides = state.deck.slides.slice(0, 4);
-    slides.forEach((slide, i) => {
-      const canvas = document.createElement('canvas');
-      canvas.width = SIZE;
-      canvas.height = SIZE;
-      E.drawSlide(canvas.getContext('2d'), {
-        p: state.palette,
-        motif: state.motif,
-        slide: slide,
-        index: i,
-        img: state.img,
-        seed: state.seed
-      });
-
-      const wrap = document.createElement('div');
-      wrap.className = 'slide';
-      const btn = document.createElement('button');
-      btn.className = 'ghost';
-      btn.textContent = 'تحميل ' + E.arNum(i + 1);
-      btn.addEventListener('click', () => download(canvas, i));
-      wrap.append(canvas, btn);
-      box.appendChild(wrap);
-    });
-    $('meta').textContent = 'النمط: ' + (THEME_LABEL[state.motif] || state.motif) + ' · ١٠٨٠×١٠٨٠';
-    $('results').classList.add('on');
-  }
-
-  function slug(s) { return String(s || 'carousel').trim().replace(/[\\/:*?"<>|\s]+/g, '-').slice(0, 40); }
-
-  function download(canvas, i) {
-    canvas.toBlob((blob) => {
-      if (!blob) return;
-      const a = document.createElement('a');
-      const url = URL.createObjectURL(blob);
-      a.href = url;
-      a.download = slug($('product').value) + '-' + E.arNum(i + 1) + '.png';
-      document.body.appendChild(a);
-      a.click();
-      a.remove();
-      setTimeout(() => URL.revokeObjectURL(url), 4000);
-    }, 'image/png');
-  }
-
-  /* ---------- الأزرار ---------- */
-  $('go').addEventListener('click', generate);
-  $('product').addEventListener('keydown', (e) => { if (e.key === 'Enter') generate(); });
-
-  $('vary').addEventListener('click', () => {
-    if (!state.deck) return;
-    let next = E.pickMotif(state.motif, Date.now() + state.seed);
-    if (next === state.motif) next = E.MOTIFS[(E.MOTIFS.indexOf(state.motif) + 1) % E.MOTIFS.length];
-    state.motif = next;
-    state.seed = Math.floor(Math.random() * 1e6);
-    drawDeck();
-    setMsg('شكل جديد بنفس النص — بدون أي طلب جديد للخدمة.');
+    ctx.fillStyle = t.text;
+    ctx.globalAlpha = 0.9;
+    lines.forEach((l) => { ctx.fillText(l, i === 2 ? X - 44 : tx, y); y += bLH; });
+    ctx.globalAlpha = 1;
+    y += itemGap;
   });
 
-  $('all').addEventListener('click', () => {
-    document.querySelectorAll('#slides canvas').forEach((cv, i) => {
-      setTimeout(() => download(cv, i), i * 350);
-    });
+  // خط عمودي بلون التمييز
+  if (aligned && (layout === 'editorial' || i === 2)) {
+    ctx.fillStyle = t.accent;
+    ctx.fillRect(SIZE - 118, startY - tS * 0.85, 6, y - itemGap - bS * 0.4 - startY + tS * 0.85);
+  }
+
+  // مؤشر الشرائح (4 نقاط)
+  for (let k = 0; k < 4; k++) {
+    ctx.beginPath();
+    ctx.arc(SIZE / 2 + (k - 1.5) * 34, SIZE - 86, 8, 0, Math.PI * 2);
+    ctx.fillStyle = t.accent;
+    ctx.globalAlpha = k === i ? 1 : 0.3;
+    ctx.fill();
+  }
+  ctx.globalAlpha = 1;
+}
+
+function drawImageCard(ctx, img, x, y, w, h, pad, c) {
+  // بطاقة بيضاء خلف الصورة
+  ctx.save();
+  roundRect(ctx, x, y, w, h, 28);
+  ctx.fillStyle = '#ffffff';
+  ctx.fill();
+  ctx.restore();
+
+  // الصورة كاملة داخل البطاقة (بدون قص)
+  ctx.save();
+  roundRect(ctx, x + pad / 2, y + pad / 2, w - pad, h - pad, 18);
+  ctx.clip();
+  ctx.drawImage(img, x + pad, y + pad, w - pad * 2, h - pad * 2);
+  ctx.restore();
+
+  // إطار بلون التمييز
+  ctx.save();
+  ctx.strokeStyle = c.accent;
+  ctx.lineWidth = 3;
+  roundRect(ctx, x, y, w, h, 28);
+  ctx.stroke();
+  ctx.restore();
+}
+
+function roundRect(ctx, x, y, w, h, r) {
+  ctx.beginPath();
+  ctx.moveTo(x + r, y);
+  ctx.arcTo(x + w, y, x + w, y + h, r);
+  ctx.arcTo(x + w, y + h, x, y + h, r);
+  ctx.arcTo(x, y + h, x, y, r);
+  ctx.arcTo(x, y, x + w, y, r);
+  ctx.closePath();
+}
+
+// تقسيم النص إلى أسطر حسب العرض
+function wrap(ctx, text, maxW) {
+  const words = text.split(/\s+/).filter(Boolean);
+  const lines = [];
+  let line = '';
+  words.forEach((w) => {
+    const test = line ? line + ' ' + w : w;
+    if (ctx.measureText(test).width > maxW && line) { lines.push(line); line = w; }
+    else line = test;
   });
-})();
+  if (line) lines.push(line);
+  return lines;
+}
+
+// ---------- التحميل ----------
+function download(canvas, i) {
+  canvas.toBlob((blob) => {
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = `slide-${i + 1}.png`;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+  }, 'image/png');
+}
+
+$('all').addEventListener('click', () => {
+  document.querySelectorAll('#slides canvas').forEach((cv, i) => {
+    setTimeout(() => download(cv, i), i * 400);
+  });
+});
 </script>
 </body>
 </html>
-
