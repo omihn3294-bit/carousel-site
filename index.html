@@ -1,0 +1,359 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>مولّد منشورات التقليب</title>
+<link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;700;800&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #f6f4ef;
+    --card: #ffffff;
+    --ink: #1c1b19;
+    --muted: #6b665d;
+    --line: #dcd6c8;
+    --brand: #0f5c4d;
+    --brand-ink: #ffffff;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    font-family: 'Tajawal', Arial, sans-serif;
+    background: var(--bg);
+    color: var(--ink);
+    line-height: 1.7;
+  }
+  main { max-width: 760px; margin: 0 auto; padding: 24px 16px 64px; }
+  h1 { font-size: 28px; margin: 8px 0 4px; font-weight: 800; }
+  .sub { color: var(--muted); margin: 0 0 24px; }
+  .panel {
+    background: var(--card);
+    border: 1px solid var(--line);
+    border-radius: 12px;
+    padding: 20px;
+  }
+  label { display: block; font-weight: 700; margin: 14px 0 6px; }
+  label:first-child { margin-top: 0; }
+  input[type=text], textarea {
+    width: 100%;
+    font: inherit;
+    padding: 10px 12px;
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    background: #fff;
+    color: var(--ink);
+  }
+  textarea { min-height: 90px; resize: vertical; }
+  input:focus-visible, textarea:focus-visible, button:focus-visible {
+    outline: 3px solid #f0b429;
+    outline-offset: 2px;
+  }
+  .hint { color: var(--muted); font-size: 14px; margin: 4px 0 0; }
+  button {
+    font: inherit;
+    font-weight: 700;
+    cursor: pointer;
+    border-radius: 8px;
+    border: 1px solid var(--brand);
+    padding: 11px 18px;
+  }
+  .primary { background: var(--brand); color: var(--brand-ink); width: 100%; margin-top: 18px; font-size: 18px; }
+  .primary:disabled { opacity: .6; cursor: wait; }
+  .secondary { background: #fff; color: var(--brand); }
+  #msg { margin: 14px 0 0; min-height: 24px; }
+  #msg.err { color: #b3261e; }
+  #results { margin-top: 28px; display: none; }
+  .bar { display: flex; justify-content: space-between; align-items: center; gap: 8px; flex-wrap: wrap; margin-bottom: 14px; }
+  .bar h2 { margin: 0; font-size: 20px; }
+  .slides { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 16px; }
+  .slide { background: var(--card); border: 1px solid var(--line); border-radius: 12px; padding: 10px; }
+  .slide canvas { width: 100%; height: auto; display: block; border-radius: 8px; }
+  .slide button { width: 100%; margin-top: 10px; }
+</style>
+</head>
+<body>
+<main>
+  <h1>مولّد منشورات التقليب</h1>
+  <p class="sub">اكتب منتجك، والذكاء الاصطناعي يكتب النص ويختار التصميم، وتحمّل 4 شرائح جاهزة للنشر.</p>
+
+  <section class="panel">
+    <label for="product">اسم المنتج</label>
+    <input type="text" id="product" maxlength="200" placeholder="مثال: عطر عود فاخر">
+
+    <label for="details">وصف قصير (اختياري)</label>
+    <textarea id="details" maxlength="800" placeholder="مثال: يدوم 12 ساعة، رائحة دافئة، مناسب للهدايا والعيد"></textarea>
+
+    <label for="tone">الأسلوب (اختياري)</label>
+    <input type="text" id="tone" maxlength="100" placeholder="مثال: فخم، أو حماسي، أو بسيط">
+
+    <label for="photo">صورة المنتج (اختياري)</label>
+    <input type="file" id="photo" accept="image/*">
+    <p class="hint">الصورة تبقى في جهازك ولا تُرفع لأي مكان.</p>
+
+    <button class="primary" id="go">أنشئ المنشور</button>
+    <p id="msg" role="status" aria-live="polite"></p>
+  </section>
+
+  <section id="results">
+    <div class="bar">
+      <h2>الشرائح</h2>
+      <button class="secondary" id="all">حمّل الكل</button>
+    </div>
+    <div class="slides" id="slides"></div>
+  </section>
+</main>
+
+<script>
+const FONT = "'Tajawal', Arial, sans-serif";
+const SIZE = 1080;
+let productImg = null;
+let lastData = null;
+
+const $ = (id) => document.getElementById(id);
+
+// ---------- صورة المنتج ----------
+$('photo').addEventListener('change', (e) => {
+  const file = e.target.files[0];
+  if (!file) { productImg = null; if (lastData) render(lastData); return; }
+  const img = new Image();
+  img.onload = () => { productImg = img; if (lastData) render(lastData); };
+  img.src = URL.createObjectURL(file);
+});
+
+// ---------- طلب النص والتصميم من الذكاء الاصطناعي ----------
+$('go').addEventListener('click', async () => {
+  const product = $('product').value.trim();
+  if (!product) { setMsg('اكتب اسم المنتج أولاً.', true); return; }
+
+  $('go').disabled = true;
+  setMsg('جاري كتابة المنشور وتصميمه...');
+
+  try {
+    const r = await fetch('/api/generate', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        product,
+        details: $('details').value.trim(),
+        tone: $('tone').value.trim()
+      })
+    });
+    const data = await r.json();
+    if (!r.ok) throw new Error(data.error || 'حدث خطأ');
+    lastData = data;
+    await document.fonts.load("700 60px 'Tajawal'");
+    render(data);
+    setMsg('تم. حمّل الشرائح من الأسفل.');
+  } catch (err) {
+    setMsg(err.message || 'تعذّر إنشاء المنشور، جرّب مرة ثانية.', true);
+  } finally {
+    $('go').disabled = false;
+  }
+});
+
+function setMsg(text, isErr) {
+  const m = $('msg');
+  m.textContent = text;
+  m.className = isErr ? 'err' : '';
+}
+
+// ---------- أدوات الألوان (حماية من أي لون غير صالح) ----------
+const HEX = /^#[0-9a-fA-F]{6}$/;
+function lum(hex) {
+  const n = parseInt(hex.slice(1), 16);
+  const c = [(n >> 16) & 255, (n >> 8) & 255, n & 255].map((v) => {
+    v /= 255;
+    return v <= 0.03928 ? v / 12.92 : Math.pow((v + 0.055) / 1.055, 2.4);
+  });
+  return 0.2126 * c[0] + 0.7152 * c[1] + 0.0722 * c[2];
+}
+function contrast(a, b) {
+  const l1 = lum(a), l2 = lum(b);
+  return (Math.max(l1, l2) + 0.05) / (Math.min(l1, l2) + 0.05);
+}
+function safeColors(c) {
+  c = c || {};
+  const bg = HEX.test(c.bg) ? c.bg : '#14213d';
+  const bg2 = HEX.test(c.bg2) ? c.bg2 : bg;
+  let text = HEX.test(c.text) ? c.text : '#ffffff';
+  const accent = HEX.test(c.accent) ? c.accent : '#fca311';
+  // لو النص ما يظهر بوضوح، نختار أبيض أو أسود تلقائياً
+  if (contrast(text, bg) < 4.5) text = lum(bg) > 0.4 ? '#111111' : '#ffffff';
+  return { bg, bg2, text, accent };
+}
+
+// ---------- الرسم ----------
+function render(data) {
+  const colors = safeColors(data.colors);
+  const style = ['luxury', 'minimal', 'bold'].includes(data.style) ? data.style : 'minimal';
+  const imgPos = data.imagePosition === 'top' ? 'top' : 'bottom';
+  const box = $('slides');
+  box.innerHTML = '';
+
+  data.slides.slice(0, 4).forEach((s, i) => {
+    const canvas = document.createElement('canvas');
+    canvas.width = SIZE;
+    canvas.height = SIZE;
+    drawSlide(canvas.getContext('2d'), s, i, colors, style, imgPos);
+
+    const wrap = document.createElement('div');
+    wrap.className = 'slide';
+    const btn = document.createElement('button');
+    btn.className = 'secondary';
+    btn.textContent = 'حمّل الشريحة ' + (i + 1);
+    btn.addEventListener('click', () => download(canvas, i));
+    wrap.append(canvas, btn);
+    box.appendChild(wrap);
+  });
+  $('results').style.display = 'block';
+}
+
+function drawSlide(ctx, slide, i, c, style, imgPos) {
+  // 1) الخلفية
+  const g = ctx.createLinearGradient(0, 0, SIZE, SIZE);
+  g.addColorStop(0, c.bg);
+  g.addColorStop(1, c.bg2);
+  ctx.fillStyle = g;
+  ctx.fillRect(0, 0, SIZE, SIZE);
+
+  // 2) الزخرفة حسب القالب
+  decorate(ctx, c, style);
+
+  // 3) الصورة (في الشريحة الأولى والأخيرة فقط)
+  const hasImg = productImg && (i === 0 || i === 3);
+  let textTop = 120, textBottom = SIZE - 120;
+  if (hasImg) {
+    const imgH = 440, margin = 110;
+    const imgY = imgPos === 'top' ? margin : SIZE - margin - imgH;
+    drawImage(ctx, productImg, 140, imgY, SIZE - 280, imgH, c);
+    if (imgPos === 'top') { textTop = margin + imgH + 50; textBottom = SIZE - 110; }
+    else { textTop = 110; textBottom = imgY - 40; }
+  }
+
+  // 4) النص
+  const titleSize = hasImg ? 66 : 88;
+  const bodySize = hasImg ? 38 : 46;
+  const maxW = SIZE - 220;
+
+  ctx.direction = 'rtl';
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'alphabetic';
+
+  ctx.font = `800 ${titleSize}px ${FONT}`;
+  const titleLines = wrap(ctx, String(slide.title || ''), maxW);
+
+  ctx.font = `400 ${bodySize}px ${FONT}`;
+  let bodyLines = [];
+  const rawBody = String(slide.body || '');
+  if (i === 2) {
+    rawBody.split('\n').filter(Boolean).forEach((line) => {
+      wrap(ctx, '✓ ' + line.replace(/^[-•✓\s]+/, ''), maxW).forEach((l) => bodyLines.push(l));
+    });
+  } else {
+    bodyLines = wrap(ctx, rawBody, maxW);
+  }
+
+  const titleLH = titleSize * 1.3, bodyLH = bodySize * 1.6, gap = 36;
+  const total = titleLines.length * titleLH + gap + bodyLines.length * bodyLH;
+  let y = textTop + Math.max(0, (textBottom - textTop - total) / 2) + titleSize;
+
+  ctx.fillStyle = c.accent;
+  ctx.font = `800 ${titleSize}px ${FONT}`;
+  titleLines.forEach((l) => { ctx.fillText(l, SIZE / 2, y); y += titleLH; });
+
+  y += gap - titleSize * 0.3;
+  ctx.fillStyle = c.text;
+  ctx.font = `400 ${bodySize}px ${FONT}`;
+  bodyLines.forEach((l) => { ctx.fillText(l, SIZE / 2, y); y += bodyLH; });
+
+  // 5) رقم الشريحة
+  ctx.fillStyle = c.text;
+  ctx.globalAlpha = 0.55;
+  ctx.font = `700 30px ${FONT}`;
+  ctx.fillText(`${i + 1} / 4`, SIZE / 2, SIZE - 50);
+  ctx.globalAlpha = 1;
+}
+
+function decorate(ctx, c, style) {
+  ctx.save();
+  if (style === 'luxury') {
+    ctx.strokeStyle = c.accent;
+    ctx.lineWidth = 4;
+    ctx.strokeRect(40, 40, SIZE - 80, SIZE - 80);
+    ctx.lineWidth = 1.5;
+    ctx.strokeRect(60, 60, SIZE - 120, SIZE - 120);
+  } else if (style === 'bold') {
+    ctx.fillStyle = c.accent;
+    ctx.globalAlpha = 0.18;
+    ctx.beginPath(); ctx.arc(SIZE, 0, 380, 0, Math.PI * 2); ctx.fill();
+    ctx.beginPath(); ctx.arc(0, SIZE, 300, 0, Math.PI * 2); ctx.fill();
+  } else {
+    ctx.fillStyle = c.accent;
+    ctx.fillRect(0, 0, SIZE, 24);
+    ctx.fillRect(SIZE / 2 - 60, SIZE - 100, 120, 6);
+  }
+  ctx.restore();
+}
+
+function drawImage(ctx, img, x, y, w, h, c) {
+  ctx.save();
+  roundRect(ctx, x, y, w, h, 28);
+  ctx.clip();
+  // قص الصورة لتملأ المساحة بدون تمطيط
+  const r = Math.max(w / img.width, h / img.height);
+  const dw = img.width * r, dh = img.height * r;
+  ctx.drawImage(img, x + (w - dw) / 2, y + (h - dh) / 2, dw, dh);
+  ctx.restore();
+  ctx.save();
+  ctx.strokeStyle = c.accent;
+  ctx.lineWidth = 4;
+  roundRect(ctx, x, y, w, h, 28);
+  ctx.stroke();
+  ctx.restore();
+}
+
+function roundRect(ctx, x, y, w, h, r) {
+  ctx.beginPath();
+  ctx.moveTo(x + r, y);
+  ctx.arcTo(x + w, y, x + w, y + h, r);
+  ctx.arcTo(x + w, y + h, x, y + h, r);
+  ctx.arcTo(x, y + h, x, y, r);
+  ctx.arcTo(x, y, x + w, y, r);
+  ctx.closePath();
+}
+
+// تقسيم النص إلى أسطر حسب العرض
+function wrap(ctx, text, maxW) {
+  const words = text.split(/\s+/).filter(Boolean);
+  const lines = [];
+  let line = '';
+  words.forEach((w) => {
+    const test = line ? line + ' ' + w : w;
+    if (ctx.measureText(test).width > maxW && line) { lines.push(line); line = w; }
+    else line = test;
+  });
+  if (line) lines.push(line);
+  return lines;
+}
+
+// ---------- التحميل ----------
+function download(canvas, i) {
+  canvas.toBlob((blob) => {
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = `slide-${i + 1}.png`;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+  }, 'image/png');
+}
+
+$('all').addEventListener('click', () => {
+  document.querySelectorAll('#slides canvas').forEach((cv, i) => {
+    setTimeout(() => download(cv, i), i * 400);
+  });
+});
+</script>
+</body>
+</html>
