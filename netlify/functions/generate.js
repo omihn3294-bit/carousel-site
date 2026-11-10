@@ -68,22 +68,15 @@ exports.handler = async function (event) {
     return reply(400, { error: "الطلب غير صالح" });
   }
 
-  const product = String(body.product || "").slice(0, 200).trim();
-  const details = String(body.details || "").slice(0, 800).trim();
-  const offer = String(body.offer || "").slice(0, 150).trim();
-  const tone = String(body.tone || "").slice(0, 100).trim();
+  const description = String(body.description || "").slice(0, 1000).trim();
 
-  if (!product) {
-    return reply(400, { error: "اكتب اسم المنتج أولاً" });
+  if (!description) {
+    return reply(400, { error: "اكتب وصف المنشور أولاً" });
   }
 
   const userMessage =
-    `المنتج: ${product}\n` +
-    (details ? `التفاصيل: ${details}\n` : "") +
-    (offer ? `السعر أو العرض: ${offer}\n` : "") +
-    (tone ? `الأسلوب المطلوب: ${tone}\n` : "") +
-    `التخطيط المقترح لهذه المرة: ${LAYOUT_NAMES[Math.floor(Math.random() * LAYOUT_NAMES.length)]}
-`;
+    `طلب المستخدم (فيه المنتج وتفاصيله وربما السعر أو العرض أو الأسلوب): ${description}\n` +
+    `التخطيط المقترح لهذه المرة: ${LAYOUT_NAMES[Math.floor(Math.random() * LAYOUT_NAMES.length)]}`;
 
   try {
     const r = await fetch("https://api.groq.com/openai/v1/chat/completions", {
