@@ -1,130 +1,200 @@
 // netlify/functions/generate.js
-// هذي الدالة تشتغل على سيرفر Netlify، والمفتاح يبقى مخفي هنا ولا يوصل للمتصفح.
+// دالة Netlify: تكتب نصوص المنشور وتختار لوحة الألوان والشكل المناسب.
+// المفتاح يبقى على الخادم ولا يصل للمتصفح.
 
-const SYSTEM_PROMPT = `أنت كاتب إعلانات محترف لمنشورات إنستغرام لأصحاب المشاريع الصغيرة في سلطنة عمان ودول الخليج.
-المطلوب: منشور تقليب (Carousel) من 4 شرائح. اللغة عربية بسيطة قريبة من لغة الناس اليومية في الخليج، وليست فصحى متكلفة.
+const MOTIFS = [
+  'arch', 'split', 'editorial', 'band', 'circle', 'grid', 'wave',
+  'ticket', 'offset', 'diagonal', 'halftone', 'polaroid', 'corner', 'fullbleed'
+];
 
-قواعد الكتابة:
-- ابدأ من فائدة حقيقية يحسها المشتري، ولا تكتب عبارات عامة مثل "أفضل منتج" أو "جودة عالية" أو "لا تفوّت الفرصة".
-- استخدم فقط المعلومات التي كتبها المستخدم. ممنوع اختراع أرقام أو مواصفات أو أسعار أو ضمانات.
-- إذا كانت المعلومات قليلة، استنتج فقط الفوائد الواضحة للنوع نفسه من المنتجات.
-- الجمل قصيرة ومباشرة، بدون حشو.
+const MOTIF_HINT = {
+  arch: 'قوس كبير (فخم/هدايا)',
+  split: 'لوحة لونية جانبية (عصري/واضح)',
+  editorial: 'مجلاتي بمساحات بيضاء (راقٍ)',
+  band: 'شريط علوي ملوّن (بسيط/جريء)',
+  circle: 'دائرة ناعمة (ودود/عناية)',
+  grid: 'شبكة نقاط (تقني/شبابي)',
+  wave: 'موجة سفلية (خفيف/منعش)',
+  ticket: 'إطار تذكرة (عرض/خصم)',
+  offset: 'إطار مائل (إبداعي)',
+  diagonal: 'شريط مائل (حيوي)',
+  halftone: 'نقاط متدرجة (طباعة/فني)',
+  polaroid: 'صورة بولارويد (دافئ/شخصي)',
+  corner: 'زوايا فقط (هادئ/فاخر)',
+  fullbleed: 'صورة تملأ الشريحة (بصري/منتج)'
+};
 
-الشريحة 1 (الخطاف): العنوان من 3 إلى 5 كلمات، سؤال يلمس مشكلة أو وعد واضح يوقف المتصفح. النص تحته جملة واحدة لا تتجاوز 10 كلمات.
-الشريحة 2 (المشكلة والحل): العنوان قصير. النص جملتان: الأولى موقف يعيشه الزبون، والثانية كيف يحله المنتج.
-الشريحة 3 (الفوائد): العنوان قصير. النص 3 فوائد، كل فائدة في سطر منفصل (افصل بينها بـ \\n) ولا تتجاوز 6 كلمات، وتبدأ بفعل أو بنتيجة يحصل عليها الزبون، وليست مجرد مواصفة.
-الشريحة 4 (الدعوة للشراء): العنوان فعل واضح مثل "اطلبه الآن". النص جملة تذكر العرض أو السعر إذا كتبهما المستخدم فقط، وتنتهي بطريقة الطلب (مثل: راسلنا على واتساب). لا تضف إحساساً بالاستعجال إلا إذا كان هناك عرض مذكور.
+const SYSTEM_PROMPT = `أنت كاتب إعلانات عربي محترف لمنشورات إنستغرام لأصحاب المشاريع الصغيرة في الخليج.
 
-قواعد التصميم: ابتكر تصميماً يناسب هذا المنتج بالذات.
-- palette: لونان فقط بصيغة #RRGGBB. bg لون الخلفية (فاتح مثل كريمي أو رملي أو وردي ناعم أو أخضر باهت، أو غامق مثل كحلي أو أخضر غابي أو عنابي أو فحمي). accent لون التمييز المنسجم مع الخلفية والمعبّر عن روح المنتج. اختر ألواناً هادئة ومريحة للعين، وممنوع الفاقعة. والكود يضبط التباين تلقائياً.
-- layout: شكل التصميم الهندسي، اختر واحداً فقط:
-  frame: إطار رفيع ونص في الوسط (كلاسيكي هادئ)
-  editorial: نص جانبي مع خط عمودي (أنيق ومجلاتي)
-  band: شريط ملوّن على الحافة ونص في الوسط (بسيط عصري)
-  circle: دائرة ناعمة خلف النص (ودود وحيوي)
-  card: بطاقة داخل إطار ملوّن عريض (حديث وجريء)
-  numeral: رقم الشريحة كبير باهت ونص جانبي في الأسفل (جريء)
-  header: شريط علوي ملوّن ونص في الوسط (رسمي ومرتب)
-  diagonal: شريط مائل ناعم ونص جانبي (شبابي وحركي)
-- يوجد في رسالة المستخدم تخطيط مقترح لهذه المرة، التزم به إلا إذا كان غير مناسب إطلاقاً للمنتج.
+اكتب منشور تقليب من 4 شرائح، بلغة عربية بسيطة قريبة من كلام الناس، لا فصحى متكلفة.
+- استخدم فقط معلومات المستخدم. ممنوع اختراع أرقام أو أسعار أو مواصفات أو ضمانات.
+- لو المعلومات قليلة، اذكر الفوائد الواضحة لنوع المنتج نفسه دون اختلاق تفاصيل.
+- جمل قصيرة. لا حشو ولا عبارات مثل "أفضل منتج" أو "جودة عالية" أو "لا تفوّت الفرصة".
 
-ارجع JSON فقط، بدون أي كلام قبله أو بعده، وبهذا الشكل:
-{
-  "palette": { "bg": "#RRGGBB", "accent": "#RRGGBB" },
-  "layout": "frame",
-  "imagePosition": "top" أو "bottom",
-  "slides": [
-    { "title": "...", "body": "..." },
-    { "title": "...", "body": "..." },
-    { "title": "...", "body": "..." },
-    { "title": "...", "body": "..." }
-  ]
-}`;
+الشريحة 1 (الخطاف): عنوان 3 إلى 5 كلمات، سؤال يلمس مشكلة أو وعد واضح. تحته جملة واحدة ≤ 10 كلمات.
+الشريحة 2 (المشكلة والحل): عنوان قصير، ونص من جملتين: موقف يعيشه الزبون ثم كيف يحله المنتج.
+الشريحة 3 (الفوائد): عنوان قصير، و3 فوائد كل واحدة في سطر منفصل (افصل بـ \\n)، كل فائدة ≤ 6 كلمات وتبدأ بفعل أو نتيجة للزبون لا بمواصفة.
+الشريحة 4 (الدعوة): عنوان فعل واضح مثل "اطلبه الآن"، ونص يذكر السعر أو العرض فقط إن ذكره المستخدم، وينتهي بطريقة الطلب (واتساب/رابط). لا استعجال بلا عرض فعلي.
 
-const LAYOUT_NAMES = ["frame", "editorial", "band", "circle", "card", "numeral", "header", "diagonal"];
+التصميم: اختر لوحة لونية وشكلاً يناسبان روح المنتج.
+- palette: لونان فقط #RRGGBB. bg خلفية هادئة (كريمي، رملي، وردي ناعم، أخضر باهت، أو كحلي/غامق)، وaccent لون تمييز منسجم غير فاقع. الكود يضبط التباين تلقائياً.
+- motif: شكل الغلاف، اختر واحداً فقط من: ${MOTIFS.map(m => m + ' (' + MOTIF_HINT[m] + ')').join('، ')}.
 
-function reply(statusCode, obj) {
+أرجع JSON فقط بهذا الشكل:
+{"palette":{"bg":"#RRGGBB","accent":"#RRGGBB"},"motif":"arch","slides":[{"title":"...","body":"..."},{"title":"...","body":"..."},{"title":"...","body":"..."},{"title":"...","body":"..."}]}`;
+
+const HEX = /^#[0-9a-f]{6}$/i;
+
+function reply(statusCode, obj, extra) {
   return {
     statusCode,
-    headers: { "Content-Type": "application/json; charset=utf-8" },
-    body: JSON.stringify(obj),
+    headers: Object.assign({
+      'Content-Type': 'application/json; charset=utf-8',
+      'Cache-Control': 'no-store'
+    }, extra || {}),
+    body: JSON.stringify(obj)
   };
 }
 
+// حماية بسيطة من الإفراط في الطلبات (لكل نسخة دالة)
+const hits = new Map();
+function limited(ip) {
+  const now = Date.now();
+  const list = (hits.get(ip) || []).filter(t => now - t < 60000);
+  list.push(now);
+  hits.set(ip, list);
+  if (hits.size > 500) hits.clear();
+  return list.length > 12;
+}
+
+function clean(s, max) {
+  return String(s == null ? '' : s).replace(/\s+/g, ' ').trim().slice(0, max);
+}
+
+function firstJson(text) {
+  const t = String(text || '').replace(/```json|```/gi, '').trim();
+  try { return JSON.parse(t); } catch (e) {}
+  const a = t.indexOf('{');
+  const b = t.lastIndexOf('}');
+  if (a > -1 && b > a) {
+    try { return JSON.parse(t.slice(a, b + 1)); } catch (e) {}
+  }
+  return null;
+}
+
 exports.handler = async function (event) {
-  if (event.httpMethod !== "POST") {
-    return reply(405, { error: "يجب أن يكون الطلب POST" });
+  if (event.httpMethod !== 'POST') {
+    return reply(405, { error: 'يجب أن يكون الطلب POST' }, { Allow: 'POST' });
   }
 
   const key = process.env.GROQ_API_KEY;
   if (!key) {
-    return reply(500, { error: "المفتاح GROQ_API_KEY غير موجود في إعدادات Netlify" });
+    return reply(500, { error: 'المفتاح GROQ_API_KEY غير موجود في إعدادات Netlify' });
+  }
+
+  const ip = (event.headers['x-nf-client-connection-ip'] || event.headers['client-ip'] || 'unknown');
+  if (limited(ip)) {
+    return reply(429, { error: 'طلبات كثيرة في وقت قصير، انتظر دقيقة وجرّب.' });
   }
 
   let body = {};
   try {
-    body = JSON.parse(event.body || "{}");
+    const raw = event.isBase64Encoded
+      ? Buffer.from(event.body || '', 'base64').toString('utf8')
+      : (event.body || '{}');
+    body = JSON.parse(raw);
   } catch (e) {
-    return reply(400, { error: "الطلب غير صالح" });
+    return reply(400, { error: 'الطلب غير صالح' });
   }
 
-  const product = String(body.product || "").slice(0, 200).trim();
-  const details = String(body.details || "").slice(0, 800).trim();
-  const offer = String(body.offer || "").slice(0, 150).trim();
-  const tone = String(body.tone || "").slice(0, 100).trim();
+  const product = clean(body.product, 200);
+  const details = clean(body.details, 800);
+  const offer = clean(body.offer, 150);
+  const tone = clean(body.tone, 100);
+  const avoid = MOTIFS.indexOf(clean(body.avoid, 40)) > -1 ? clean(body.avoid, 40) : '';
 
   if (!product) {
-    return reply(400, { error: "اكتب اسم المنتج أولاً" });
+    return reply(400, { error: 'اكتب اسم المنتج أولاً' });
   }
 
   const userMessage =
     `المنتج: ${product}\n` +
-    (details ? `التفاصيل: ${details}\n` : "") +
-    (offer ? `السعر أو العرض: ${offer}\n` : "") +
-    (tone ? `الأسلوب المطلوب: ${tone}\n` : "") +
-    `التخطيط المقترح لهذه المرة: ${LAYOUT_NAMES[Math.floor(Math.random() * LAYOUT_NAMES.length)]}
-`;
+    (details ? `التفاصيل: ${details}\n` : '') +
+    (offer ? `السعر أو العرض: ${offer}\n` : '') +
+    (tone ? `الأسلوب: ${tone}\n` : '') +
+    (avoid ? `لا تختر الشكل: ${avoid}\n` : '');
 
+  // مهلة صريحة حتى لا تعلّق الدالة
+  const ctrl = new AbortController();
+  const timer = setTimeout(() => ctrl.abort(), 20000);
+  let res, data;
   try {
-    const r = await fetch("https://api.groq.com/openai/v1/chat/completions", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${key}`,
-      },
+    res = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${key}` },
       body: JSON.stringify({
-        // لو الموديل تغيّر اسمه، غيّره من إعدادات Netlify (GROQ_MODEL) بدون تعديل الكود
-        model: process.env.GROQ_MODEL || "openai/gpt-oss-120b",
-        temperature: 0.8,
-        max_tokens: 2000,
-        response_format: { type: "json_object" },
+        model: process.env.GROQ_MODEL || 'openai/gpt-oss-120b',
+        temperature: 0.75,
+        max_tokens: 1200,
+        response_format: { type: 'json_object' },
         messages: [
-          { role: "system", content: SYSTEM_PROMPT },
-          { role: "user", content: userMessage },
-        ],
+          { role: 'system', content: SYSTEM_PROMPT },
+          { role: 'user', content: userMessage }
+        ]
       }),
+      signal: ctrl.signal
     });
-
-    const data = await r.json();
-    if (!r.ok) {
-      const msg = (data && data.error && data.error.message) || "خطأ من Groq";
-      return reply(502, { error: msg });
-    }
-
-    const text = (data.choices && data.choices[0] && data.choices[0].message && data.choices[0].message.content) || "";
-    let parsed;
-    try {
-      parsed = JSON.parse(text.replace(/```json|```/g, "").trim());
-    } catch (e) {
-      return reply(502, { error: "رد الذكاء الاصطناعي غير مرتب، جرّب مرة ثانية" });
-    }
-
-    if (!Array.isArray(parsed.slides) || parsed.slides.length < 4) {
-      return reply(502, { error: "الرد ناقص، جرّب مرة ثانية" });
-    }
-
-    return reply(200, parsed);
+    data = await res.json();
   } catch (err) {
-    return reply(500, { error: "تعذّر الاتصال بالخدمة، جرّب بعد قليل" });
+    clearTimeout(timer);
+    if (err && err.name === 'AbortError') {
+      return reply(504, { error: 'الخدمة تأخّرت، جرّب مرة ثانية.' });
+    }
+    return reply(502, { error: 'تعذّر الاتصال بالخدمة، جرّب بعد قليل.' });
+  } finally {
+    clearTimeout(timer);
   }
+
+  if (!res.ok) {
+    const status = res.status;
+    if (status === 429) return reply(429, { error: 'ضغط على الخدمة حالياً، انتظر لحظات وجرّب.' });
+    if (status === 401 || status === 403) return reply(502, { error: 'مفتاح الخدمة غير صالح في إعدادات Netlify.' });
+    const msg = (data && data.error && data.error.message) || 'خطأ من خدمة النصوص';
+    return reply(502, { error: msg });
+  }
+
+  const text = data && data.choices && data.choices[0] && data.choices[0].message
+    ? data.choices[0].message.content
+    : '';
+  const parsed = firstJson(text);
+  if (!parsed) {
+    return reply(502, { error: 'رد الذكاء الاصطناعي غير مرتب، جرّب مرة ثانية.' });
+  }
+
+  const slides = Array.isArray(parsed.slides) ? parsed.slides : [];
+  const norm = slides
+    .map(s => ({ title: clean(s && s.title, 90), body: clean(s && s.body, 320) }))
+    .filter(s => s.title && s.body)
+    .slice(0, 4);
+
+  if (norm.length < 4) {
+    return reply(502, { error: 'الرد ناقص، جرّب مرة ثانية.' });
+  }
+
+  const pal = parsed.palette || {};
+  const palette = {
+    bg: HEX.test(String(pal.bg || '')) ? pal.bg : '#F4EFE6',
+    accent: HEX.test(String(pal.accent || '')) ? pal.accent : '#8A6A45'
+  };
+
+  let motif = MOTIFS.indexOf(parsed.motif) > -1 ? parsed.motif : '';
+  if (!motif) motif = MOTIFS[Math.floor(Math.random() * MOTIFS.length)];
+  if (motif === avoid) motif = MOTIFS[(MOTIFS.indexOf(motif) + 1) % MOTIFS.length];
+
+  return reply(200, {
+    palette,
+    motif,
+    seed: Math.floor(Math.random() * 1000000),
+    slides: norm
+  });
 };

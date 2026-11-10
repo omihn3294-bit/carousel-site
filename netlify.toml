@@ -2,7 +2,21 @@
   publish = "."
   functions = "netlify/functions"
 
+[functions]
+  node_version = "20"
+
 [[redirects]]
   from = "/api/generate"
   to = "/.netlify/functions/generate"
   status = 200
+  force = true
+
+[[headers]]
+  for = "/index.html"
+  [headers.values]
+    Cache-Control = "public, max-age=0, must-revalidate"
+
+[[headers]]
+  for = "/engine.js"
+  [headers.values]
+    Cache-Control = "public, max-age=3600"
