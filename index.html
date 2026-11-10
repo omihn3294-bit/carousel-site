@@ -83,6 +83,9 @@
     <label for="details">وصف قصير (اختياري)</label>
     <textarea id="details" maxlength="800" placeholder="مثال: يدوم 12 ساعة، رائحة دافئة، مناسب للهدايا والعيد"></textarea>
 
+    <label for="offer">السعر أو العرض (اختياري)</label>
+    <input type="text" id="offer" maxlength="150" placeholder="مثال: 9 ريال عماني، توصيل مجاني لكل ولايات السلطنة">
+
     <label for="tone">الأسلوب (اختياري)</label>
     <input type="text" id="tone" maxlength="100" placeholder="مثال: فخم، أو حماسي، أو بسيط">
 
@@ -135,6 +138,7 @@ $('go').addEventListener('click', async () => {
       body: JSON.stringify({
         product,
         details: $('details').value.trim(),
+        offer: $('offer').value.trim(),
         tone: $('tone').value.trim()
       })
     });
@@ -223,16 +227,21 @@ function drawSlide(ctx, slide, i, c, style, imgPos) {
   const hasImg = productImg && (i === 0 || i === 3);
   let textTop = 120, textBottom = SIZE - 120;
   if (hasImg) {
-    const imgH = 440, margin = 110;
-    const imgY = imgPos === 'top' ? margin : SIZE - margin - imgH;
-    drawImage(ctx, productImg, 140, imgY, SIZE - 280, imgH, c);
-    if (imgPos === 'top') { textTop = margin + imgH + 50; textBottom = SIZE - 110; }
-    else { textTop = 110; textBottom = imgY - 40; }
+    // الصورة تظهر كاملة بدون قص، داخل إطار فيه حواف من كل الجهات
+    const maxW = 800, maxH = 400, pad = 24, margin = 100;
+    const r = Math.min(maxW / productImg.width, maxH / productImg.height);
+    const iw = productImg.width * r, ih = productImg.height * r;
+    const cardW = iw + pad * 2, cardH = ih + pad * 2;
+    const cardX = (SIZE - cardW) / 2;
+    const cardY = imgPos === 'top' ? margin : SIZE - margin - cardH;
+    drawImageCard(ctx, productImg, cardX, cardY, cardW, cardH, pad, c);
+    if (imgPos === 'top') { textTop = cardY + cardH + 40; textBottom = SIZE - 110; }
+    else { textTop = 110; textBottom = cardY - 40; }
   }
 
   // 4) النص
-  const titleSize = hasImg ? 66 : 88;
-  const bodySize = hasImg ? 38 : 46;
+  const titleSize = hasImg ? 72 : 96;
+  const bodySize = hasImg ? 44 : 52;
   const maxW = SIZE - 220;
 
   ctx.direction = 'rtl';
@@ -295,18 +304,25 @@ function decorate(ctx, c, style) {
   ctx.restore();
 }
 
-function drawImage(ctx, img, x, y, w, h, c) {
+function drawImageCard(ctx, img, x, y, w, h, pad, c) {
+  // بطاقة بيضاء خلف الصورة
   ctx.save();
   roundRect(ctx, x, y, w, h, 28);
-  ctx.clip();
-  // قص الصورة لتملأ المساحة بدون تمطيط
-  const r = Math.max(w / img.width, h / img.height);
-  const dw = img.width * r, dh = img.height * r;
-  ctx.drawImage(img, x + (w - dw) / 2, y + (h - dh) / 2, dw, dh);
+  ctx.fillStyle = '#ffffff';
+  ctx.fill();
   ctx.restore();
+
+  // الصورة كاملة داخل البطاقة (بدون قص)
+  ctx.save();
+  roundRect(ctx, x + pad / 2, y + pad / 2, w - pad, h - pad, 18);
+  ctx.clip();
+  ctx.drawImage(img, x + pad, y + pad, w - pad * 2, h - pad * 2);
+  ctx.restore();
+
+  // إطار بلون التمييز
   ctx.save();
   ctx.strokeStyle = c.accent;
-  ctx.lineWidth = 4;
+  ctx.lineWidth = 5;
   roundRect(ctx, x, y, w, h, 28);
   ctx.stroke();
   ctx.restore();
