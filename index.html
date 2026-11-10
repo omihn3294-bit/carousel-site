@@ -161,35 +161,20 @@ function setMsg(text, isErr) {
   m.className = isErr ? 'err' : '';
 }
 
-// ---------- أدوات الألوان (حماية من أي لون غير صالح) ----------
-const HEX = /^#[0-9a-fA-F]{6}$/;
-function lum(hex) {
-  const n = parseInt(hex.slice(1), 16);
-  const c = [(n >> 16) & 255, (n >> 8) & 255, n & 255].map((v) => {
-    v /= 255;
-    return v <= 0.03928 ? v / 12.92 : Math.pow((v + 0.055) / 1.055, 2.4);
-  });
-  return 0.2126 * c[0] + 0.7152 * c[1] + 0.0722 * c[2];
-}
-function contrast(a, b) {
-  const l1 = lum(a), l2 = lum(b);
-  return (Math.max(l1, l2) + 0.05) / (Math.min(l1, l2) + 0.05);
-}
-function safeColors(c) {
-  c = c || {};
-  const bg = HEX.test(c.bg) ? c.bg : '#14213d';
-  const bg2 = HEX.test(c.bg2) ? c.bg2 : bg;
-  let text = HEX.test(c.text) ? c.text : '#ffffff';
-  const accent = HEX.test(c.accent) ? c.accent : '#fca311';
-  // لو النص ما يظهر بوضوح، نختار أبيض أو أسود تلقائياً
-  if (contrast(text, bg) < 4.5) text = lum(bg) > 0.4 ? '#111111' : '#ffffff';
-  return { bg, bg2, text, accent };
-}
+// ---------- القوالب: ألوان هادئة ومريحة للعين، والذكاء الاصطناعي يختار منها ----------
+const THEMES = {
+  ivory:  { bg: '#F4EFE6', bg2: '#EAE3D5', text: '#2A2926', accent: '#7A5C3E' },
+  sage:   { bg: '#E3E9E0', bg2: '#D5DFD2', text: '#22302A', accent: '#3E6B52' },
+  rose:   { bg: '#F5E8E6', bg2: '#EBD7D4', text: '#3A2A2E', accent: '#9A4A5C' },
+  navy:   { bg: '#1C2B40', bg2: '#16233A', text: '#EDF0F4', accent: '#C9A96B' },
+  forest: { bg: '#1F3B33', bg2: '#183029', text: '#F1EEE6', accent: '#D8BA7C' },
+  slate:  { bg: '#2C3037', bg2: '#23272D', text: '#ECEDEF', accent: '#86BBA6' }
+};
 
 // ---------- الرسم ----------
 function render(data) {
-  const colors = safeColors(data.colors);
-  const style = ['luxury', 'minimal', 'bold'].includes(data.style) ? data.style : 'minimal';
+  const t = THEMES[data.theme] || THEMES.ivory;
+  const layout = data.layout === 'editorial' ? 'editorial' : 'classic';
   const imgPos = data.imagePosition === 'top' ? 'top' : 'bottom';
   const box = $('slides');
   box.innerHTML = '';
@@ -198,110 +183,117 @@ function render(data) {
     const canvas = document.createElement('canvas');
     canvas.width = SIZE;
     canvas.height = SIZE;
-    drawSlide(canvas.getContext('2d'), s, i, colors, style, imgPos);
+    drawSlide(canvas.getContext('2d'), s, i, t, layout, imgPos);
 
-    const wrap = document.createElement('div');
-    wrap.className = 'slide';
+    const wrapEl = document.createElement('div');
+    wrapEl.className = 'slide';
     const btn = document.createElement('button');
     btn.className = 'secondary';
     btn.textContent = 'حمّل الشريحة ' + (i + 1);
     btn.addEventListener('click', () => download(canvas, i));
-    wrap.append(canvas, btn);
-    box.appendChild(wrap);
+    wrapEl.append(canvas, btn);
+    box.appendChild(wrapEl);
   });
   $('results').style.display = 'block';
 }
 
-function drawSlide(ctx, slide, i, c, style, imgPos) {
-  // 1) الخلفية
-  const g = ctx.createLinearGradient(0, 0, SIZE, SIZE);
-  g.addColorStop(0, c.bg);
-  g.addColorStop(1, c.bg2);
+function drawSlide(ctx, slide, i, t, layout, imgPos) {
+  // الخلفية: تدرج خفيف جداً
+  const g = ctx.createLinearGradient(0, 0, 0, SIZE);
+  g.addColorStop(0, t.bg);
+  g.addColorStop(1, t.bg2);
   ctx.fillStyle = g;
   ctx.fillRect(0, 0, SIZE, SIZE);
 
-  // 2) الزخرفة حسب القالب
-  decorate(ctx, c, style);
+  // إطار رفيع
+  ctx.save();
+  ctx.strokeStyle = t.accent;
+  ctx.globalAlpha = 0.45;
+  ctx.lineWidth = 2;
+  ctx.strokeRect(48, 48, SIZE - 96, SIZE - 96);
+  ctx.restore();
 
-  // 3) الصورة (في الشريحة الأولى والأخيرة فقط)
+  // الصورة (الشريحة الأولى والأخيرة): كاملة بدون قص وبحواف
   const hasImg = productImg && (i === 0 || i === 3);
-  let textTop = 120, textBottom = SIZE - 120;
+  let top = 130, bottom = SIZE - 150;
   if (hasImg) {
-    // الصورة تظهر كاملة بدون قص، داخل إطار فيه حواف من كل الجهات
-    const maxW = 800, maxH = 400, pad = 24, margin = 100;
+    const maxW = 780, maxH = 390, pad = 24, margin = 110;
     const r = Math.min(maxW / productImg.width, maxH / productImg.height);
     const iw = productImg.width * r, ih = productImg.height * r;
-    const cardW = iw + pad * 2, cardH = ih + pad * 2;
-    const cardX = (SIZE - cardW) / 2;
-    const cardY = imgPos === 'top' ? margin : SIZE - margin - cardH;
-    drawImageCard(ctx, productImg, cardX, cardY, cardW, cardH, pad, c);
-    if (imgPos === 'top') { textTop = cardY + cardH + 40; textBottom = SIZE - 110; }
-    else { textTop = 110; textBottom = cardY - 40; }
+    const cw = iw + pad * 2, ch = ih + pad * 2;
+    const cx0 = (SIZE - cw) / 2;
+    const cy0 = imgPos === 'top' ? margin : SIZE - margin - ch - 30;
+    drawImageCard(ctx, productImg, cx0, cy0, cw, ch, pad, t);
+    if (imgPos === 'top') { top = cy0 + ch + 30; bottom = SIZE - 150; }
+    else { top = 120; bottom = cy0 - 30; }
   }
 
-  // 4) النص
-  const titleSize = hasImg ? 72 : 96;
-  const bodySize = hasImg ? 44 : 52;
-  const maxW = SIZE - 220;
-
+  // النص
+  const aligned = layout === 'editorial' || i === 2;
+  const tS = hasImg ? 70 : 90, bS = hasImg ? 42 : 50;
+  const X = SIZE - 160;
+  const maxW = aligned ? SIZE - 360 : SIZE - 260;
   ctx.direction = 'rtl';
-  ctx.textAlign = 'center';
   ctx.textBaseline = 'alphabetic';
 
-  ctx.font = `800 ${titleSize}px ${FONT}`;
-  const titleLines = wrap(ctx, String(slide.title || ''), maxW);
+  ctx.font = `800 ${tS}px ${FONT}`;
+  const tl = wrap(ctx, String(slide.title || ''), maxW);
+  ctx.font = `400 ${bS}px ${FONT}`;
+  const raw = String(slide.body || '');
+  const items = i === 2
+    ? raw.split('\n').filter(Boolean).map((l) => wrap(ctx, l.replace(/^[-•✓\s]+/, ''), maxW - 50))
+    : [wrap(ctx, raw, maxW)];
 
-  ctx.font = `400 ${bodySize}px ${FONT}`;
-  let bodyLines = [];
-  const rawBody = String(slide.body || '');
-  if (i === 2) {
-    rawBody.split('\n').filter(Boolean).forEach((line) => {
-      wrap(ctx, '✓ ' + line.replace(/^[-•✓\s]+/, ''), maxW).forEach((l) => bodyLines.push(l));
-    });
-  } else {
-    bodyLines = wrap(ctx, rawBody, maxW);
+  const tLH = tS * 1.3, bLH = bS * 1.55, itemGap = i === 2 ? 24 : 0;
+  const bodyH = items.reduce((s, a) => s + a.length * bLH, 0) + itemGap * (items.length - 1);
+  const total = tl.length * tLH + 50 + bodyH;
+  let y = top + Math.max(0, (bottom - top - total) / 2) + tS;
+  const startY = y;
+
+  ctx.textAlign = aligned ? 'right' : 'center';
+  const tx = aligned ? X : SIZE / 2;
+
+  ctx.fillStyle = t.text;
+  ctx.font = `800 ${tS}px ${FONT}`;
+  tl.forEach((l) => { ctx.fillText(l, tx, y); y += tLH; });
+  let lastBase = y - tLH;
+
+  if (!aligned) {
+    ctx.fillStyle = t.accent;
+    ctx.fillRect(SIZE / 2 - 45, lastBase + 28, 90, 6);
   }
 
-  const titleLH = titleSize * 1.3, bodyLH = bodySize * 1.6, gap = 36;
-  const total = titleLines.length * titleLH + gap + bodyLines.length * bodyLH;
-  let y = textTop + Math.max(0, (textBottom - textTop - total) / 2) + titleSize;
+  y = lastBase + 50 + bS;
+  ctx.font = `400 ${bS}px ${FONT}`;
+  items.forEach((lines) => {
+    if (i === 2) {
+      ctx.fillStyle = t.accent;
+      ctx.beginPath();
+      ctx.arc(X - 12, y - bS * 0.32, 9, 0, Math.PI * 2);
+      ctx.fill();
+    }
+    ctx.fillStyle = t.text;
+    ctx.globalAlpha = 0.9;
+    lines.forEach((l) => { ctx.fillText(l, i === 2 ? X - 44 : tx, y); y += bLH; });
+    ctx.globalAlpha = 1;
+    y += itemGap;
+  });
 
-  ctx.fillStyle = c.accent;
-  ctx.font = `800 ${titleSize}px ${FONT}`;
-  titleLines.forEach((l) => { ctx.fillText(l, SIZE / 2, y); y += titleLH; });
+  // خط عمودي بلون التمييز في التصميم الجانبي
+  if (aligned) {
+    ctx.fillStyle = t.accent;
+    ctx.fillRect(SIZE - 118, startY - tS * 0.85, 6, y - itemGap - bS * 0.4 - startY + tS * 0.85);
+  }
 
-  y += gap - titleSize * 0.3;
-  ctx.fillStyle = c.text;
-  ctx.font = `400 ${bodySize}px ${FONT}`;
-  bodyLines.forEach((l) => { ctx.fillText(l, SIZE / 2, y); y += bodyLH; });
-
-  // 5) رقم الشريحة
-  ctx.fillStyle = c.text;
-  ctx.globalAlpha = 0.55;
-  ctx.font = `700 30px ${FONT}`;
-  ctx.fillText(`${i + 1} / 4`, SIZE / 2, SIZE - 50);
+  // مؤشر الشرائح (4 نقاط)
+  for (let k = 0; k < 4; k++) {
+    ctx.beginPath();
+    ctx.arc(SIZE / 2 + (k - 1.5) * 34, SIZE - 86, 8, 0, Math.PI * 2);
+    ctx.fillStyle = t.accent;
+    ctx.globalAlpha = k === i ? 1 : 0.3;
+    ctx.fill();
+  }
   ctx.globalAlpha = 1;
-}
-
-function decorate(ctx, c, style) {
-  ctx.save();
-  if (style === 'luxury') {
-    ctx.strokeStyle = c.accent;
-    ctx.lineWidth = 4;
-    ctx.strokeRect(40, 40, SIZE - 80, SIZE - 80);
-    ctx.lineWidth = 1.5;
-    ctx.strokeRect(60, 60, SIZE - 120, SIZE - 120);
-  } else if (style === 'bold') {
-    ctx.fillStyle = c.accent;
-    ctx.globalAlpha = 0.18;
-    ctx.beginPath(); ctx.arc(SIZE, 0, 380, 0, Math.PI * 2); ctx.fill();
-    ctx.beginPath(); ctx.arc(0, SIZE, 300, 0, Math.PI * 2); ctx.fill();
-  } else {
-    ctx.fillStyle = c.accent;
-    ctx.fillRect(0, 0, SIZE, 24);
-    ctx.fillRect(SIZE / 2 - 60, SIZE - 100, 120, 6);
-  }
-  ctx.restore();
 }
 
 function drawImageCard(ctx, img, x, y, w, h, pad, c) {
@@ -322,7 +314,7 @@ function drawImageCard(ctx, img, x, y, w, h, pad, c) {
   // إطار بلون التمييز
   ctx.save();
   ctx.strokeStyle = c.accent;
-  ctx.lineWidth = 5;
+  ctx.lineWidth = 3;
   roundRect(ctx, x, y, w, h, 28);
   ctx.stroke();
   ctx.restore();
